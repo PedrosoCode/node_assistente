@@ -42,3 +42,18 @@ app.get('/pingpong', (req, res) => {
       res.json(results);
     });
   });
+
+  app.post('/pingpongInsert', (req, res) => {
+    const message = req.body.message;
+    if (!message) {
+      return res.status(400).json({ error: 'A mensagem é necessária.' });
+    }
+  
+    const query = 'INSERT INTO pingpong (message) VALUES (?)';
+    db.query(query, [message], (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json({ message: `Mensagem adicionada com sucesso: ${message}` });
+    });
+});
