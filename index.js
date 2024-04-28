@@ -24,7 +24,7 @@ db.connect(err => {
 
 // Rota de exemplo
 app.get('/', (req, res) => {
-  res.json({ message: 'Bem-vindo à API!' });
+  res.json({ message: 'Olá, mundo.' });
 });
 
 // Porta do servidor
@@ -32,3 +32,13 @@ const PORT = process.env.PORT || 3042;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+app.get('/pingpong', (req, res) => {
+    const query = 'SELECT * FROM pingpong';
+    db.query(query, (err, results) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.json(results);
+    });
+  });
