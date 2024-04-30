@@ -4,12 +4,15 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-
+const multer = require('multer');
+const fs = require('fs');
 
 
 const app = express();
 app.use(cors());
 app.use(express.json()); // Para parsear JSON no corpo das requisições
+app.use('/uploads', express.static('uploads'));
+
 
 // Configuração do banco de dados
 const db = mysql.createConnection({
@@ -62,6 +65,51 @@ app.post('/pingpongInsert', (req, res) => {
     res.status(201).json({ message: `Mensagem adicionada com sucesso: ${message}` });
   });
 });
+
+
+
+// Verifica se o diretório existe, se não, cria-o
+const uploadsDir = 'uploads';
+if (!fs.existsSync(uploadsDir)){
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configuração do multer para armazenar arquivos
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, uploadsDir)  // Diretório onde os arquivos serão salvos
+  },
+  filename: function(req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)  // Nome do arquivo no servidor
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Rota para o upload de imagens
+app.post('/upload', upload.single('image'), (req, res) => {
+  const imagePath = req.file.path;  // Caminho do arquivo no servidor
+
+  // Salvar o caminho da imagem no banco de dados
+  const query = 'INSERT INTO imagens (caminho) VALUES (?)';
+  db.query(query, [imagePath], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ message: 'Imagem carregada e caminho salvo com sucesso!', path: imagePath });
+  });
+});
+
+app.get('/images', (req, res) => {
+  const query = 'SELECT caminho FROM imagens';
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(results);
+  });
+});
+
 
 app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
