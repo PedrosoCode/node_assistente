@@ -19,7 +19,7 @@ const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: '@Inspiron1',
-  database: 'db_gerenciamento'
+  database: 'db_assistente'
 });
 
 // Conecta ao banco de dados
@@ -70,16 +70,16 @@ app.post('/pingpongInsert', (req, res) => {
 
 // Verifica se o diretório existe, se não, cria-o
 const uploadsDir = 'uploads';
-if (!fs.existsSync(uploadsDir)){
-    fs.mkdirSync(uploadsDir, { recursive: true });
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Configuração do multer para armazenar arquivos
 const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     cb(null, uploadsDir)  // Diretório onde os arquivos serão salvos
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname)  // Nome do arquivo no servidor
   }
 });
@@ -110,33 +110,89 @@ app.get('/images', (req, res) => {
   });
 });
 
+app.post('/tipoMaquinaInsert', (req, res) => {
+  const { tipo } = req.body;
+  if (!tipo) {
+    return res.status(400).json({ error: 'O tipo de máquina é necessário.' });
+  }
+
+  const query = 'INSERT INTO tb_tipo_maquina (tipo) VALUES (?)';
+  db.query(query, [tipo], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ message: `Tipo de máquina adicionado com sucesso: ${tipo}` });
+  });
+});
+
+app.post('/ItemInsert', (req, res) => {
+  const { tipo } = req.body;
+  if (!tipo) {
+    return res.status(400).json({ error: 'O tipo de item é necessário.' });
+  }
+
+  const query = 'INSERT INTO tb_item (item) VALUES (?)';
+  db.query(query, [tipo], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ message: `Peça ou produto adicionado com sucesso: ${tipo}` });
+  });
+});
+
+app.post('/DefeitoInsert', (req, res) => {
+  const { tipo } = req.body;
+  if (!tipo) {
+    return res.status(400).json({ error: 'O tipo de defeito é necessário.' });
+  }
+
+  const query = 'INSERT INTO tb_defeito (defeito) VALUES (?)';
+  db.query(query, [tipo], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ message: `Defeito adicionado com sucesso: ${tipo}` });
+  });
+});
+
+app.post('/api/cadastro', (req, res) => {
+  const { nome_contato, telefone, endereco, nome_fantasia, razao_social, cpf_cnpj, tipo_pessoa } = req.body;
+  const query = 'INSERT INTO tb_cliente (nome_contato, telefone, endereco, nome_fantasia, razao_social, cpf_cnpj, tipo_pessoa) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  db.query(query, [nome_contato, telefone, endereco, nome_fantasia, razao_social, cpf_cnpj, tipo_pessoa], (err, result) => {
+      if (err) {
+          return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json({ message: 'Cadastro realizado com sucesso!' });
+  });
+});
+
 
 app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
-      return res.status(400).json({ error: 'Username, email, and password are required.' });
+    return res.status(400).json({ error: 'Username, email, and password are required.' });
   }
 
   // Verificar se o usuário ou email já existe
   const checkUserQuery = 'SELECT * FROM users WHERE username = ? OR email = ?';
   db.query(checkUserQuery, [username, email], async (err, results) => {
-      if (err) {
-          return res.status(500).json({ error: err.message });
-      }
-      if (results.length > 0) {
-          return res.status(409).json({ error: 'Username or email already exists.' });
-      }
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (results.length > 0) {
+      return res.status(409).json({ error: 'Username or email already exists.' });
+    }
 
-      // Se não existir, prosseguir com a criação do usuário
-      const hashedPassword = await bcrypt.hash(password, 8);
-      const registerQuery = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
-      db.query(registerQuery, [username, email, hashedPassword], (err, result) => {
-          if (err) {
-              return res.status(500).json({ error: err.message });
-          }
-          res.status(201).send('User registered');
-      });
+    // Se não existir, prosseguir com a criação do usuário
+    const hashedPassword = await bcrypt.hash(password, 8);
+    const registerQuery = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
+    db.query(registerQuery, [username, email, hashedPassword], (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).send('User registered');
+    });
   });
 });
 
@@ -148,20 +204,20 @@ app.post('/login', (req, res) => {
   const query = 'SELECT * FROM users WHERE email = ?';
 
   db.query(query, [email], async (err, results) => {
-      if (err) {
-          return res.status(500).json({ error: err.message });
-      }
-      if (results.length === 0 || !(await bcrypt.compare(password, results[0].password))) {
-          return res.status(401).send('Authentication failed');
-      }
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (results.length === 0 || !(await bcrypt.compare(password, results[0].password))) {
+      return res.status(401).send('Authentication failed');
+    }
 
-      const token = jwt.sign(
-          { id: results[0].id },
-          process.env.JWT_SECRET,
-          { expiresIn: '1h' }
-      );
+    const token = jwt.sign(
+      { id: results[0].id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-      res.status(200).json({ token });
+    res.status(200).json({ token });
   });
 });
 
@@ -173,9 +229,9 @@ const authenticateToken = (req, res, next) => {
   if (token == null) return res.sendStatus(401); // Se não houver token, retorna não autorizado
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-      if (err) return res.sendStatus(403); // Token inválido ou expirado
-      req.user = user;
-      next(); // Token é válido, continua
+    if (err) return res.sendStatus(403); // Token inválido ou expirado
+    req.user = user;
+    next(); // Token é válido, continua
   });
 };
 
