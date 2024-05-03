@@ -155,6 +155,29 @@ app.post('/DefeitoInsert', (req, res) => {
   });
 });
 
+app.post('/CategoriaInsert', (req, res) => {
+  const { tipo } = req.body;
+  if (!tipo) {
+    return res.status(400).json({ error: 'A categoria é necessária.' });
+  }
+
+  const query = 'INSERT INTO tb_categoria (categoria) VALUES (?)';
+  db.query(query, [tipo], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ message: `Catergoria adicionada com sucesso: ${tipo}` });
+  });
+});
+
+// Rota para buscar categorias
+app.get('/api/categorias', (req, res) => {
+  db.query('SELECT * FROM tb_categoria', (err, results) => {
+    if (err) throw err;
+    res.json(results);
+  });
+});
+
 app.post('/api/cadastro', (req, res) => {
   const { nome_contato, telefone, endereco, nome_fantasia, razao_social, cpf_cnpj, tipo_pessoa } = req.body;
   const query = 'INSERT INTO tb_cliente (nome_contato, telefone, endereco, nome_fantasia, razao_social, cpf_cnpj, tipo_pessoa) VALUES (?, ?, ?, ?, ?, ?, ?)';
